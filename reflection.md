@@ -2,6 +2,11 @@
 
 ## 1. System Design
 
+**Core Actions**
+- Add a pet
+- See today's tasks
+- edit tasks
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
