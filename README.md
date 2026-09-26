@@ -46,7 +46,7 @@ pip install -r requirements.txt
 
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
-```
+
 Today's Schedule
 ========================================
 Daily plan for Biscuit (dog):
@@ -55,7 +55,7 @@ Daily plan for Biscuit (dog):
 
 Daily plan for Whiskers (cat):
   08:40 — Litter box cleaning (15 min) [priority: medium]
-```
+
 
 ## 🧪 Testing PawPal+
 
@@ -75,14 +75,15 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Priority + duration sorting | `Scheduler.generate_plan` | Sorts by priority first, then by shortest duration within a tier, so short tasks aren't starved by one long task of equal priority |
+| Sort by start time | `Scheduler.sort_by_time` | Re-sorts `scheduled_tasks` by `start_time`; unscheduled tasks sort last |
+| Budget filtering | `Scheduler.generate_plan` | Tasks that don't fit the remaining daily budget are routed to `skipped_tasks` with a reason |
+| Task filtering | `Owner.filter_tasks` | Filters tasks across all pets by completion status and/or pet name |
+| Conflict detection | `Scheduler.detect_conflicts` | Flags any two scheduled tasks whose time ranges overlap, same pet or different pets |
+| Conflict warnings | `Scheduler.check_conflicts` | Lightweight, non-raising wrapper around `detect_conflicts`; returns human-readable warning strings instead of crashing |
+| Recurring tasks | `Task.mark_complete` | Completing a `"daily"`/`"weekly"` task auto-creates the next occurrence, due one interval out via `timedelta` |
 
 ## 📸 Demo Walkthrough
 

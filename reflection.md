@@ -43,6 +43,10 @@ I kept the design to four classes on purpose: `Owner` and `Pet` model who/what t
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+The scheduler always fills the day's budget strictly in priority order (high, then medium, then low), rather than searching for the combination of tasks that fits the most total tasks or minutes into the day. A single large high-priority task can "starve" several smaller low-priority tasks that would otherwise have fit.
+
+This is reasonable because priority is meant to reflect real urgency (e.g., meds vs. optional playtime) — a pet owner would rather see the important task guaranteed a slot than have the scheduler silently reorder for efficiency. The one place efficiency does matter, sorting by duration as a tiebreaker within the same priority tier, is still respected, so short same-priority tasks aren't starved by a long one.
+
 ---
 
 ## 3. AI Collaboration
