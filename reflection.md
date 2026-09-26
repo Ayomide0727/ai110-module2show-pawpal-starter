@@ -12,11 +12,23 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+- **Owner** — represents the pet owner using the app. Holds the owner's name, the list of `Pet` objects they own, and how many minutes per day they have available for pet care. Its responsibility is just to hold owner-level info and let pets be added (`add_pet`).
+- **Pet** — represents a single pet and the tasks tied to it (name, species, and a list of `Task` objects). Responsible for managing that list — adding new tasks and editing existing ones (`add_task`, `edit_task`).
+- **Task** — represents one pet care activity (title, duration in minutes, priority, and once scheduled, a start time and a reason explaining why it was placed there). It's a simple data holder with no behavior of its own — all the decision-making happens elsewhere.
+- **Scheduler** — the engine that takes a `Pet` and `Owner` and produces a daily plan. It holds the resulting `scheduled_tasks` and `skipped_tasks`, generates the plan (`generate_plan`), and explains the reasoning behind it (`explain`).
+
+I kept the design to four classes on purpose: `Owner` and `Pet` model who/what the plan is for, `Task` models the unit of work being scheduled, and `Scheduler` is the one class responsible for the actual scheduling logic and its justification. 
+
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
 
+ Yes. `Task` was missing a unique `id`, so `edit_task` had no reliable way to find a specific task (matching by title would break with duplicate names).
+
+**Change:** Added `id: str` to `Task`, auto-generated with `uuid.uuid4().hex`.
+
+**Why:** `edit_task` needs a stable key that doesn't depend on task content, since content is exactly what it changes.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs

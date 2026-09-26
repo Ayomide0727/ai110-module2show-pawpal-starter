@@ -6,6 +6,7 @@ classDiagram
         +list~Pet~ pets
         +int available_minutes_per_day
         +add_pet(pet: Pet)
+        +get_all_tasks() list~Task~
     }
 
     class Pet {
@@ -17,9 +18,11 @@ classDiagram
     }
 
     class Task {
+        +str id
         +str title
         +int duration_minutes
         +str priority
+        +str pet_name
         +time start_time
         +str reason
     }
@@ -27,11 +30,11 @@ classDiagram
     class Scheduler {
         +list~Task~ scheduled_tasks
         +list~Task~ skipped_tasks
-        +generate_plan(pet: Pet, owner: Owner)
+        +generate_plan(owner: Owner)
         +explain() str
     }
 
     Owner "1" --> "*" Pet : has
     Pet "1" --> "*" Task : has
-    Scheduler "1" --> "1" Pet : schedules for
+    Scheduler "1" --> "1" Owner : schedules for
     Scheduler "1" --> "*" Task : places
