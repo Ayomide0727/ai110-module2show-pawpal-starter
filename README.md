@@ -110,12 +110,87 @@ tests/test_pawpal.py::test_check_conflicts_returns_empty_when_no_tasks_scheduled
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### UI features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The Streamlit app (`app.py`) lets a user:
+
+- Enter owner info (name, available minutes per day) and pet info (name, species)
+- Add tasks to the active pet with a title, duration, and priority (low/medium/high)
+- View the current task list in a table before scheduling
+- Generate a daily schedule with one click
+- See the resulting plan broken out into a scheduled-tasks table, a skipped-tasks section (with the reason each was skipped), and a conflict-check section that reports overlapping tasks or confirms the plan is clear
+- Expand a "Full explanation" section for the same plain-text summary `Scheduler.explain()` produces
+
+### Example workflow
+
+1. Add a pet (e.g., "Biscuit," a dog) under Owner & Pet.
+2. Add a task ("Morning walk," 30 min, high priority), then add a couple more tasks with varying durations and priorities.
+3. Click **Generate schedule**.
+4. View today's schedule — tasks appear sorted by start time, with any tasks that didn't fit the daily budget listed separately.
+5. Check the conflict-check section — if two tasks were assigned overlapping times, each overlap is called out individually; otherwise a confirmation message shows the plan is conflict-free.
+
+### Key Scheduler behaviors shown
+
+- **Priority + duration sorting** — `generate_plan` schedules high-priority tasks first, breaking ties by shorter duration.
+- **Sorting by time** — `sort_by_time` re-orders the plan chronologically for display, regardless of the order tasks were scheduled in.
+- **Budget filtering** — tasks that don't fit the owner's remaining daily minutes are routed to `skipped_tasks` with a reason instead of silently dropped.
+- **Conflict warnings** — `check_conflicts` detects overlapping start times (even across different pets) and returns a human-readable warning for each one instead of raising an error.
+- **Recurrence** — completing a daily/weekly task (via `mark_complete`) automatically enrolls its next occurrence.
+
+### Sample CLI output (`python main.py`)
+
+```
+Today's Schedule
+========================================
+Daily plan for Biscuit (dog):
+  08:00 — Feeding (10 min) [priority: high]
+  08:10 — Morning walk (30 min) [priority: high]
+  08:55 — Evening brush (5 min) [priority: low]
+
+Daily plan for Whiskers (cat):
+  08:40 — Litter box cleaning (15 min) [priority: medium]
+
+Skipped:
+  Whiskers — Play session: Skipped: needs 10 min but only 0 min remain in the day's budget.
+
+Sorted by start time (after shuffling)
+========================================
+  08:00 — Biscuit: Feeding
+  08:10 — Biscuit: Morning walk
+  08:40 — Whiskers: Litter box cleaning
+  08:55 — Biscuit: Evening brush
+
+Completed tasks
+========================================
+  Biscuit: Feeding
+  Whiskers: Litter box cleaning
+
+Incomplete tasks for Biscuit
+========================================
+  Biscuit: Morning walk
+  Biscuit: Evening brush
+
+Forcing a same-time conflict (Biscuit's Feeding vs Whiskers' Litter box cleaning)
+========================================
+  Warning: 'Biscuit: Feeding' (08:00) overlaps with 'Whiskers: Litter box cleaning' (08:00).
+  Warning: 'Whiskers: Litter box cleaning' (08:00) overlaps with 'Biscuit: Morning walk' (08:10).
+
+Plan after the conflict (see the Conflicts section)
+========================================
+Daily plan for Biscuit (dog):
+  08:00 — Feeding (10 min) [priority: high]
+  08:10 — Morning walk (30 min) [priority: high]
+  08:55 — Evening brush (5 min) [priority: low]
+
+Daily plan for Whiskers (cat):
+  08:00 — Litter box cleaning (15 min) [priority: medium]
+
+Skipped:
+  Whiskers — Play session: Skipped: needs 10 min but only 0 min remain in the day's budget.
+
+Conflicts:
+  Warning: 'Biscuit: Feeding' (08:00) overlaps with 'Whiskers: Litter box cleaning' (08:00).
+  Warning: 'Whiskers: Litter box cleaning' (08:00) overlaps with 'Biscuit: Morning walk' (08:10).
+```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

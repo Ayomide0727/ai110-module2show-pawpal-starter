@@ -68,12 +68,22 @@ This is reasonable because priority is meant to reflect real urgency (e.g., meds
 **a. What you tested**
 
 - What behaviors did you test?
+
+  Sorting (`sort_by_time` orders scheduled tasks chronologically and pushes unscheduled ones last), recurring tasks (completing a daily/weekly task creates the correct follow-up, a non-recurring task doesn't, and a recurring task with no pet attached doesn't crash), and conflict detection (exact-duplicate start times, partial overlaps, overlaps across two different pets, and confirming back-to-back tasks and an empty schedule produce no false warnings).
+
 - Why were these tests important?
+
+  These are the behaviors most likely to silently produce a wrong plan instead of an obvious crash — if sorting or conflict detection had an off-by-one error, the app would still run and show a schedule, just a wrong one, so I needed tests that would catch that instead of relying on eyeballing the output.
 
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
+
+  Fairly confident for the paths I tested (13 passing tests covering sorting, recurrence, and conflicts) and for the manual walkthrough in `main.py`, but less confident about combinations I haven't exercised together, like recurrence interacting with a skipped (not scheduled) task.
+
 - What edge cases would you test next if you had more time?
+
+  Two tasks tied on both priority and duration, a task whose scheduled time wraps past midnight, editing a task's time after the plan was already generated, and an owner with zero available minutes.
 
 ---
 
@@ -82,11 +92,17 @@ This is reasonable because priority is meant to reflect real urgency (e.g., meds
 **a. What went well**
 
 - What part of this project are you most satisfied with?
+  
+  Working with the AI to improve the secheduler and also debugging at each steps to ensure it is working well
 
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+I would improve the general ui of the app to make it more easy to use
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+ 
+ Working with AI can be overwhelming and you have to make sure you are in control of the implemation it is making 

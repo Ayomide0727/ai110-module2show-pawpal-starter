@@ -94,4 +94,42 @@ st.subheader("Build Schedule")
 if st.button("Generate schedule"):
     scheduler = Scheduler()
     scheduler.generate_plan(owner)
-    st.code(scheduler.explain())
+    scheduler.sort_by_time()
+    st.session_state.scheduler = scheduler
+
+if "scheduler" in st.session_state:
+    scheduler: Scheduler = st.session_state.scheduler
+
+    if scheduler.scheduled_tasks:
+        st.markdown("#### Today's schedule")
+        st.table(
+            [
+                {
+                    "Time": t.start_time.strftime("%H:%M") if t.start_time else "??:??",
+                    "Pet": t.pet_name,
+                    "Task": t.title,
+                    "Duration (min)": t.duration_minutes,
+                    "Priority": t.priority,
+                }
+                for t in scheduler.scheduled_tasks
+            ]
+        )
+
+    if scheduler.skipped_tasks:
+        st.markdown("#### Couldn't fit today")
+        for t in scheduler.skipped_tasks:
+            st.warning(f"**{t.pet_name}: {t.title}** — {t.reason}")
+
+    st.markdown("#### Conflict check")
+    if scheduler.conflict_warnings:
+        for warning in scheduler.conflict_warnings:
+            st.error(warning)
+        st.caption(
+            "Two tasks are scheduled to overlap — you can't be in two places at once. "
+            "Adjust a start time, shorten a duration, or move one task to tomorrow."
+        )
+    else:
+        st.success("No conflicts — every scheduled task has its own time slot.")
+
+    with st.expander("Full explanation"):
+        st.code(scheduler.explain())
