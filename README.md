@@ -61,16 +61,39 @@ Daily plan for Whiskers (cat):
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
-pytest --cov
+python -m pytest --cov
 ```
+
+The suite (`tests/test_pawpal.py`) covers:
+
+- **Sorting** — `Scheduler.sort_by_time` orders tasks chronologically and pushes unscheduled tasks (`start_time=None`) to the end; `Scheduler.generate_plan` is checked end-to-end to confirm scheduled tasks come out in start-time order with the highest-priority task placed first.
+- **Recurring tasks** — completing a `"daily"` task creates a new task due the next day, completing a `"weekly"` task creates one due a week later, a non-recurring task produces no follow-up, and a recurring task that was never attached to a `Pet` completes without crashing.
+- **Conflict detection** — `Scheduler.check_conflicts` flags exact-duplicate start times, partial time overlaps, and overlaps across two different pets, while back-to-back (adjacent, non-overlapping) tasks and an empty schedule correctly produce no warnings.
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+collected 13 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  7%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 15%]
+tests/test_pawpal.py::test_sort_by_time_orders_tasks_chronologically PASSED [ 23%]
+tests/test_pawpal.py::test_sort_by_time_puts_unscheduled_tasks_last PASSED [ 30%]
+tests/test_pawpal.py::test_generate_plan_schedules_tasks_in_chronological_start_time_order PASSED [ 38%]
+tests/test_pawpal.py::test_mark_complete_on_daily_task_creates_task_for_next_day PASSED [ 46%]
+tests/test_pawpal.py::test_mark_complete_on_weekly_task_creates_task_one_week_later PASSED [ 53%]
+tests/test_pawpal.py::test_mark_complete_on_non_recurring_task_does_not_create_followup PASSED [ 61%]
+tests/test_pawpal.py::test_mark_complete_on_recurring_task_without_pet_does_not_crash PASSED [ 69%]
+tests/test_pawpal.py::test_check_conflicts_flags_overlapping_start_times PASSED [ 76%]
+tests/test_pawpal.py::test_check_conflicts_flags_partial_overlap PASSED  [ 84%]
+tests/test_pawpal.py::test_check_conflicts_allows_back_to_back_tasks PASSED [ 92%]
+tests/test_pawpal.py::test_check_conflicts_returns_empty_when_no_tasks_scheduled PASSED [100%]
+
+============================= 13 passed in 0.03s ==============================
 ```
 
 ## 📐 Smarter Scheduling
