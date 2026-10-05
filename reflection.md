@@ -56,10 +56,14 @@ This is reasonable because priority is meant to reflect real urgency (e.g., meds
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+I used AI alot for refactoring and debugging also for when i am trying to understand an implementation some of the propmts i used are "how can i improve this app" or " help me implement core features"
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+I known that AI can complicate simple task so most time i make sure to tell it to only implement what i ask for with no external features
 
 ---
 
