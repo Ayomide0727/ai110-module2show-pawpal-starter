@@ -82,6 +82,43 @@ def main() -> None:
     print("=" * 40)
     print(scheduler.explain())
 
+    demo_priority_sorting()
+
+
+def demo_priority_sorting() -> None:
+    """Show time-only ordering vs. priority-then-time ordering on the same tasks."""
+    owner = Owner(name="Jordan", available_minutes_per_day=240)
+    rex = Pet(name="Rex", species="dog")
+    owner.add_pet(rex)
+
+    # Start times are set by hand so that the earliest task is the lowest priority.
+    plan = [
+        ("Brush coat", 10, "low", time(8, 0)),
+        ("Give medication", 5, "high", time(11, 30)),
+        ("Play fetch", 20, "medium", time(9, 0)),
+        ("Morning walk", 30, "high", time(10, 0)),
+        ("Clean water bowl", 5, "low", time(13, 0)),
+        ("Training session", 15, "medium", time(14, 0)),
+    ]
+    scheduler = Scheduler()
+    for title, minutes, priority, start in plan:
+        task = Task(title=title, duration_minutes=minutes, priority=priority, start_time=start)
+        rex.add_task(task)
+        scheduler.scheduled_tasks.append(task)
+
+    def show(heading: str) -> None:
+        print()
+        print(heading)
+        print("=" * 40)
+        for task in scheduler.scheduled_tasks:
+            print(f"  [{task.priority:<6}] {task.start_time.strftime('%H:%M')} — {task.title}")
+
+    show("Priority demo: tasks as entered")
+    scheduler.sort_by_time()
+    show("Priority demo: sort_by_time()")
+    scheduler.sort_by_priority_then_time()
+    show("Priority demo: sort_by_priority_then_time()")
+
 
 if __name__ == "__main__":
     main()

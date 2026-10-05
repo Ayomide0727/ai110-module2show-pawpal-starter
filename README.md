@@ -108,6 +108,87 @@ tests/test_pawpal.py::test_check_conflicts_returns_empty_when_no_tasks_scheduled
 | Conflict warnings | `Scheduler.check_conflicts` | Lightweight, non-raising wrapper around `detect_conflicts`; returns human-readable warning strings instead of crashing |
 | Recurring tasks | `Task.mark_complete` | Completing a `"daily"`/`"weekly"` task auto-creates the next occurrence, due one interval out via `timedelta` |
 
+## 🚦 Priority-Based Scheduling
+
+Every `Task` has a `priority` of `"low"`, `"medium"` or `"high"`. Anything else raises a `ValueError` when the task is created.
+
+| Behavior | Method | Ordering |
+|----------|--------|----------|
+| Building the day's plan | `Scheduler.generate_plan` | Priority first (high → low), then shorter duration; tasks that exceed the budget are skipped |
+| Chronological display | `Scheduler.sort_by_time` | Start time only, ignoring priority |
+| Priority-first display | `Scheduler.sort_by_priority_then_time` | Priority first (high → low), then start time within each priority; tasks with no start time go last in their tier |
+
+### CLI example (`python main.py`, "Priority demo" section)
+
+The same six tasks, first as entered, then sorted by time only, then by priority then time:
+
+```
+Priority demo: tasks as entered
+========================================
+  [low   ] 08:00 — Brush coat
+  [high  ] 11:30 — Give medication
+  [medium] 09:00 — Play fetch
+  [high  ] 10:00 — Morning walk
+  [low   ] 13:00 — Clean water bowl
+  [medium] 14:00 — Training session
+
+Priority demo: sort_by_time()
+========================================
+  [low   ] 08:00 — Brush coat
+  [medium] 09:00 — Play fetch
+  [high  ] 10:00 — Morning walk
+  [high  ] 11:30 — Give medication
+  [low   ] 13:00 — Clean water bowl
+  [medium] 14:00 — Training session
+
+Priority demo: sort_by_priority_then_time()
+========================================
+  [high  ] 10:00 — Morning walk
+  [high  ] 11:30 — Give medication
+  [medium] 09:00 — Play fetch
+  [medium] 14:00 — Training session
+  [low   ] 08:00 — Brush coat
+  [low   ] 13:00 — Clean water bowl
+```
+
+Time-only sorting puts the low-priority "Brush coat" first because it happens earliest. Priority-then-time puts both high-priority tasks on top, and still keeps each tier in chronological order.
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `pawpal_system.py` | Added priority validation in `Task.__post_init__` and `Scheduler.sort_by_priority_then_time` |
+| `main.py` | Added the "Priority demo" section (`demo_priority_sorting`) |
+| `tests/test_pawpal.py` | Added 3 tests (priority order, time tie-break, invalid priority rejected) |
+| `README.md` | This section |
+
+## 💾 Data Persistence
+
+PawPal+ remembers the owner, pets and tasks between runs by saving them to `data.json`.
+
+### Workflow
+
+1. **Startup** — `app.py` calls `Owner.load_from_json()`. If `data.json` exists, the owner, pets and tasks are restored (including task ids, start times, due dates, completion status and recurrence). If it is missing or corrupt, the app warns (for corrupt files) and starts with a fresh default owner and a starter pet instead of crashing.
+2. **While using the app** — the Owner & Pet fields are pre-filled from the loaded data. Adding tasks, editing owner/pet info and generating a schedule all update the in-memory `Owner`.
+3. **Autosave** — at the end of every Streamlit rerun, `owner.save_to_json()` writes the current state back to `data.json`. There are no Save/Load buttons to remember.
+4. **Not saved separately** — the generated schedule is rebuilt with one click; only owner settings, pets and tasks are stored.
+
+### How it works
+
+- `Task`, `Pet` and `Owner` each have `to_dict()` / `from_dict()`. `time` and `date` values are stored as ISO strings. A task's back-reference to its pet (`_pet`) is not serialized; `Pet.from_dict` re-links it via `add_task`, so recurring tasks keep re-enrolling after a reload.
+- `Owner.save_to_json(path="data.json")` and `Owner.load_from_json(path="data.json")` are the public entry points.
+- `data.json` is listed in `.gitignore` because it is local user data. Delete the file to reset the app.
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `pawpal_system.py` | Added `DATA_FILE`, `to_dict`/`from_dict` on `Task`, `Pet`, `Owner`, plus `Owner.save_to_json` and `Owner.load_from_json` |
+| `app.py` | Loads saved data at startup, pre-fills the inputs from it, autosaves at the end of each run |
+| `tests/test_pawpal.py` | Added 4 persistence tests (round trip, recurrence after reload, missing file, corrupt file) |
+| `.gitignore` | Added `data.json` |
+| `README.md` | This section |
+
 ## 📸 Demo Walkthrough
 
 ### UI features

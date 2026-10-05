@@ -1,3 +1,5 @@
+from datetime import time
+
 import streamlit as st
 
 from pawpal_system import Owner, Pet, Scheduler, Task
@@ -40,18 +42,32 @@ At minimum, your system should:
 
 st.divider()
 
-st.subheader("Owner & Pet")
-owner_name = st.text_input("Owner name", value="Jordan")
-available_minutes = st.number_input(
-    "Available minutes per day", min_value=1, max_value=1440, value=60
-)
-pet_name = st.text_input("Pet name", value="Mochi")
-species = st.selectbox("Species", ["dog", "cat", "other"])
+SPECIES_OPTIONS = ["dog", "cat", "other"]
 
+# Load saved data (data.json) once per session; falls back to fresh defaults.
 if "owner" not in st.session_state:
-    st.session_state.owner = Owner(name=owner_name, available_minutes_per_day=int(available_minutes))
-    st.session_state.pet = Pet(name=pet_name, species=species)
-    st.session_state.owner.add_pet(st.session_state.pet)
+    loaded_owner = Owner.load_from_json()
+    if not loaded_owner.pets:
+        loaded_owner.add_pet(Pet(name="Mochi", species="dog"))
+    st.session_state.owner = loaded_owner
+    st.session_state.pet = loaded_owner.pets[0]
+
+st.subheader("Owner & Pet")
+owner_name = st.text_input("Owner name", value=st.session_state.owner.name)
+available_minutes = st.number_input(
+    "Available minutes per day",
+    min_value=1,
+    max_value=1440,
+    value=st.session_state.owner.available_minutes_per_day,
+)
+pet_name = st.text_input("Pet name", value=st.session_state.pet.name)
+species = st.selectbox(
+    "Species",
+    SPECIES_OPTIONS,
+    index=SPECIES_OPTIONS.index(st.session_state.pet.species)
+    if st.session_state.pet.species in SPECIES_OPTIONS
+    else 0,
+)
 
 owner: Owner = st.session_state.owner
 pet: Pet = st.session_state.pet
@@ -131,5 +147,24 @@ if "scheduler" in st.session_state:
     else:
         st.success("No conflicts — every scheduled task has its own time slot.")
 
+    st.markdown("#### Find a free slot")
+    slot_col1, slot_col2 = st.columns(2)
+    with slot_col1:
+        slot_duration = st.number_input(
+            "Slot length (minutes)", min_value=1, max_value=240, value=30, key="slot_duration"
+        )
+    with slot_col2:
+        slot_after = st.time_input("Not before", value=time(8, 0), key="slot_after")
+
+    if st.button("Suggest a time"):
+        slot = scheduler.find_next_available_slot(int(slot_duration), after=slot_after)
+        if slot is None:
+            st.warning("No free slot of that length before 8:00 PM.")
+        else:
+            st.success(f"Next available slot: **{slot.strftime('%H:%M')}**")
+
     with st.expander("Full explanation"):
         st.code(scheduler.explain())
+
+# Autosave: every rerun (add task, generate schedule, edit owner/pet) persists to data.json.
+owner.save_to_json()

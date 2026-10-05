@@ -1,3 +1,4 @@
+import pytest
 from datetime import date, time, timedelta
 
 from pawpal_system import Owner, Pet, Scheduler, Task
@@ -181,3 +182,142 @@ def test_check_conflicts_returns_empty_when_no_tasks_scheduled():
     scheduler.scheduled_tasks = []
 
     assert scheduler.check_conflicts() == []
+
+
+# --- Next available slot -----------------------------------------------------
+
+
+def _scheduled(start_hour, start_min, duration):
+    return Task(
+        title="t", duration_minutes=duration, priority="low", start_time=time(start_hour, start_min)
+    )
+
+
+def test_next_slot_on_empty_day_is_day_start():
+    assert Scheduler().find_next_available_slot(30) == time(8, 0)
+
+
+def test_next_slot_skips_past_busy_block():
+    scheduler = Scheduler()
+    scheduler.scheduled_tasks = [_scheduled(8, 0, 60)]
+    assert scheduler.find_next_available_slot(30) == time(9, 0)
+
+
+def test_next_slot_uses_gap_between_tasks():
+    scheduler = Scheduler()
+    scheduler.scheduled_tasks = [_scheduled(8, 0, 30), _scheduled(10, 0, 30)]
+    assert scheduler.find_next_available_slot(60) == time(8, 30)
+    # The gap is exactly 90 minutes, so 90 fits but 100 goes after the last task.
+    assert scheduler.find_next_available_slot(90) == time(8, 30)
+    assert scheduler.find_next_available_slot(100) == time(10, 30)
+
+
+def test_next_slot_respects_after_parameter():
+    scheduler = Scheduler()
+    scheduler.scheduled_tasks = [_scheduled(8, 0, 30)]
+    assert scheduler.find_next_available_slot(30, after=time(12, 0)) == time(12, 0)
+
+
+def test_next_slot_returns_none_when_it_would_pass_8pm():
+    scheduler = Scheduler()
+    scheduler.scheduled_tasks = [_scheduled(8, 0, 660)]  # busy until 19:00
+    assert scheduler.find_next_available_slot(60) == time(19, 0)
+    assert scheduler.find_next_available_slot(61) is None
+
+
+# --- Data persistence --------------------------------------------------------
+
+
+def _sample_owner():
+    owner = Owner(name="Jordan", available_minutes_per_day=90)
+    pet = Pet(name="Biscuit", species="dog")
+    owner.add_pet(pet)
+    pet.add_task(
+        Task(
+            title="Walk",
+            duration_minutes=30,
+            priority="high",
+            start_time=time(8, 15),
+            recurrence="daily",
+            due_date=date(2026, 1, 2),
+        )
+    )
+    return owner
+
+
+def test_save_and_load_round_trip(tmp_path):
+    path = tmp_path / "data.json"
+    original = _sample_owner()
+    original.save_to_json(path)
+
+    loaded = Owner.load_from_json(path)
+
+    assert loaded.name == "Jordan"
+    assert loaded.available_minutes_per_day == 90
+    assert [p.name for p in loaded.pets] == ["Biscuit"]
+    task = loaded.pets[0].tasks[0]
+    original_task = original.pets[0].tasks[0]
+    assert task.id == original_task.id
+    assert task.start_time == time(8, 15)
+    assert task.due_date == date(2026, 1, 2)
+    assert task.recurrence == "daily"
+    assert task.pet_name == "Biscuit"
+
+
+def test_loaded_recurring_task_still_enrolls_next_occurrence(tmp_path):
+    path = tmp_path / "data.json"
+    _sample_owner().save_to_json(path)
+    loaded = Owner.load_from_json(path)
+
+    loaded.pets[0].tasks[0].mark_complete()
+
+    assert len(loaded.pets[0].tasks) == 2
+
+
+def test_load_missing_file_returns_fresh_owner(tmp_path):
+    owner = Owner.load_from_json(tmp_path / "nope.json")
+    assert owner.pets == []
+
+
+def test_load_corrupt_file_warns_and_returns_fresh_owner(tmp_path):
+    path = tmp_path / "data.json"
+    path.write_text("{ not valid json", encoding="utf-8")
+
+    with pytest.warns(UserWarning):
+        owner = Owner.load_from_json(path)
+
+    assert owner.pets == []
+
+
+# --- Priority-based scheduling -----------------------------------------------
+
+
+def test_sort_by_priority_then_time_orders_by_priority_first():
+    scheduler = Scheduler()
+    scheduler.scheduled_tasks = [
+        Task(title="low early", duration_minutes=5, priority="low", start_time=time(8, 0)),
+        Task(title="high late", duration_minutes=5, priority="high", start_time=time(12, 0)),
+        Task(title="medium mid", duration_minutes=5, priority="medium", start_time=time(10, 0)),
+    ]
+
+    scheduler.sort_by_priority_then_time()
+
+    assert [t.title for t in scheduler.scheduled_tasks] == ["high late", "medium mid", "low early"]
+
+
+def test_sort_by_priority_then_time_breaks_ties_by_start_time():
+    scheduler = Scheduler()
+    scheduler.scheduled_tasks = [
+        Task(title="high 11", duration_minutes=5, priority="high", start_time=time(11, 0)),
+        Task(title="high 9", duration_minutes=5, priority="high", start_time=time(9, 0)),
+        Task(title="high none", duration_minutes=5, priority="high"),
+    ]
+
+    scheduler.sort_by_priority_then_time()
+
+    assert [t.title for t in scheduler.scheduled_tasks] == ["high 9", "high 11", "high none"]
+
+
+def test_task_rejects_unknown_priority():
+    with pytest.raises(ValueError):
+        Task(title="Bad", duration_minutes=5, priority="urgent")
